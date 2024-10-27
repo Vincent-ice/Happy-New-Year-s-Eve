@@ -5,11 +5,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import time
+
+start_time = time.time()
+log = open("log_"+time.strftime('%H-%M-%S')+".log", "w")
 
 # Defaults
-plt.rcParams['figure.figsize'] = (20.0, 10.0)
-plt.rcParams.update({'font.size': 12})
-plt.style.use('ggplot')
+#plt.rcParams['figure.figsize'] = (20.0, 10.0)
+#plt.rcParams.update({'font.size': 12})
+#plt.style.use('ggplot')
 
 # Load the data
 data = pd.read_csv('international-airline-passengers.csv', engine='python', skipfooter=3)
@@ -18,10 +22,10 @@ data['Month']=pd.to_datetime(data['Month'], format='%Y-%m')
 data.set_index(['Month'], inplace=True)
 
 # Plot the data
-data.plot()
-plt.ylabel('Monthly airline passengers (x1000)')
-plt.xlabel('Date')
-plt.show()
+#data.plot()
+#plt.ylabel('Monthly airline passengers (x1000)')
+#plt.xlabel('Date')
+#plt.show()
 
 # Define the d and q parameters to take any value between 0 and 1
 q = d = range(0, 2)
@@ -59,12 +63,14 @@ for param in pdq:
             results = mod.fit()
 
             print('SARIMAX{}x{} - AIC:{}'.format(param, param_seasonal, results.aic), end='\r')
+            log.write('SARIMAX{}x{} - AIC:{}\n'.format(param, param_seasonal, results.aic))
             AIC.append(results.aic)
             SARIMAX_model.append([param, param_seasonal])
         except:
             continue
 
 print('The smallest AIC is {} for model SARIMAX{}x{}'.format(min(AIC), SARIMAX_model[AIC.index(min(AIC))][0],SARIMAX_model[AIC.index(min(AIC))][1]))
+log.write('The smallest AIC is {} for model SARIMAX{}x{}\n\n'.format(min(AIC), SARIMAX_model[AIC.index(min(AIC))][0],SARIMAX_model[AIC.index(min(AIC))][1]))
 
 # Let's fit this model
 mod = sm.tsa.statespace.SARIMAX(train_data,
@@ -76,7 +82,7 @@ mod = sm.tsa.statespace.SARIMAX(train_data,
 results = mod.fit()
 
 results.plot_diagnostics(figsize=(20, 14))
-plt.show()
+#plt.show()
 
 pred0 = results.get_prediction(start='1958-01-01', dynamic=False)
 pred0_ci = pred0.conf_int()
@@ -93,10 +99,10 @@ pred0.predicted_mean.plot(ax=ax, label='1-step-ahead Forecast (get_predictions, 
 pred1.predicted_mean.plot(ax=ax, label='Dynamic Forecast (get_predictions, dynamic=True)')
 pred2.predicted_mean.plot(ax=ax, label='Dynamic Forecast (get_forecast)')
 ax.fill_between(pred2_ci.index, pred2_ci.iloc[:, 0], pred2_ci.iloc[:, 1], color='k', alpha=.1)
-plt.ylabel('Monthly airline passengers (x1000)')
-plt.xlabel('Date')
-plt.legend()
-plt.show()
+#plt.ylabel('Monthly airline passengers (x1000)')
+#plt.xlabel('Date')
+#plt.legend()
+#plt.show()
 
 prediction = pred2.predicted_mean['1960-01-01':'1960-12-01'].values
 # flatten nested list
@@ -105,3 +111,11 @@ truth = list(itertools.chain.from_iterable(test_data.values))
 MAPE = np.mean(np.abs((truth - prediction) / truth)) * 100
 
 print('The Mean Absolute Percentage Error for the forecast of year 1960 is {:.2f}%'.format(MAPE))
+log.write('The Mean Absolute Percentage Error for the forecast of year 1960 is {:.2f}%\n\n'.format(MAPE))
+
+
+end_time = time.time()
+print("Time taken to run this cell: {:.2f}".format(end_time - start_time))
+log.write("Time taken to run this cell: {:.2f}".format(end_time - start_time))
+
+log.close()
